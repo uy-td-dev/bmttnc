@@ -1,0 +1,237 @@
+<!DOCTYPE>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Playfair Cipher</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 50px auto;
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .logo {
+            max-width: 150px;
+            margin-bottom: 20px;
+        }
+
+        h4, h2 {
+            color: #333;
+        }
+
+        form {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        label {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        input[type="text"] {
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+
+        button {
+            padding: 10px 15px;
+            font-size: 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        button[type="button"] {
+            background-color: #007bff;
+            color: #fff;
+            transition: background-color 0.3s ease;
+        }
+
+        button[type="button"]:hover {
+            background-color: #0056b3;
+        }
+
+        #result {
+            color: #28a745;
+            font-size: 18px;
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        #error {
+            color: #dc3545;
+            font-size: 18px;
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        #matrix {
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        table {
+            margin: 0 auto;
+            border-collapse: collapse;
+        }
+
+        table td {
+            border: 1px solid #ccc;
+            padding: 10px;
+            font-size: 18px;
+            text-align: center;
+        }
+
+        ul {
+            padding: 0;
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        ul li {
+            display: inline-block;
+            margin: 0 10px;
+        }
+
+        ul li a {
+            text-decoration: none;
+            padding: 10px 15px;
+            background-color: #007bff;
+            color: #fff;
+            border-radius: 4px;
+            transition: background-color 0.3s ease;
+        }
+
+        ul li a:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <img src="https://file1.hutech.edu.vn/file/editor/homepage/stores/hinh34/logo%20CMYK-01.png" alt="Logo" class="logo">
+        <h4 style="text-align: center;">BÀI THỰC HÀNH BẢO MẬT THÔNG TIN NÂNG CAO</h4>
+        <ul>
+            <li><a href="/caesar">Caesar Cipher</a></li>
+            <li><a href="/playfair">Playfair Cipher</a></li>
+            <li><a href="/transposition">Transposition Cipher</a></li>
+            <li><a href="/vigenere">Vigenere Cipher</a></li>
+            <li><a href="/railfence">Rail Fence Cipher</a></li>
+        </ul>
+        <h2 style="text-align: center;">Playfair Cipher</h2>
+        <form id="playfair-form">
+            <label for="key">Key:</label>
+            <input type="text" id="key" name="key" placeholder="Enter key..." required>
+            
+            <label for="text">Text:</label>
+            <input type="text" id="text" name="text" placeholder="Enter text..." required>
+            
+            <div style="display: flex; justify-content: space-between;">
+                <button type="button" id="encrypt-btn">Encrypt</button>
+                <button type="button" id="decrypt-btn">Decrypt</button>
+            </div>
+        </form>
+        <button type="button" id="generate-matrix-btn" style="margin-top: 20px; width: 100%;">Generate Matrix</button>
+        <div id="matrix"></div>
+        <div id="result"></div>
+        <div id="error"></div>
+    </div>
+
+    <script>
+        // Function to call the Playfair API for encryption or decryption
+        async function callPlayfairAPI(endpoint, text, key) {
+            try {
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ plaintext: text, ciphertext: text, key: key })
+                });
+
+                const data = await response.json();
+                if (response.ok) {
+                    document.getElementById('result').innerText = endpoint.includes('encrypt') 
+                        ? `Encrypted Text: ${data.ciphertext}` 
+                        : `Decrypted Text: ${data.plaintext}`;
+                    document.getElementById('error').innerText = '';
+                } else {
+                    document.getElementById('error').innerText = data.error || 'An error occurred.';
+                    document.getElementById('result').innerText = '';
+                }
+            } catch (error) {
+                document.getElementById('error').innerText = 'An error occurred. Please try again.';
+                document.getElementById('result').innerText = '';
+            }
+        }
+
+        // Function to generate and display the Playfair matrix
+        async function generateMatrix(key) {
+            try {
+                const response = await fetch('/api/playfair/creatematrix', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ key: key })
+                });
+
+                const data = await response.json();
+                if (response.ok) {
+                    const matrixDiv = document.getElementById('matrix');
+                    matrixDiv.innerHTML = '<h3>Generated Matrix:</h3>';
+                    const table = document.createElement('table');
+                    data.matrix.forEach(row => {
+                        const tr = document.createElement('tr');
+                        row.forEach(cell => {
+                            const td = document.createElement('td');
+                            td.innerText = cell;
+                            tr.appendChild(td);
+                        });
+                        table.appendChild(tr);
+                    });
+                    matrixDiv.appendChild(table);
+                } else {
+                    document.getElementById('error').innerText = data.error || 'An error occurred.';
+                }
+            } catch (error) {
+                document.getElementById('error').innerText = 'An error occurred. Please try again.';
+            }
+        }
+
+        // Event listeners for Encrypt, Decrypt, and Generate Matrix buttons
+        document.getElementById('encrypt-btn').addEventListener('click', () => {
+            const key = document.getElementById('key').value;
+            const text = document.getElementById('text').value;
+            callPlayfairAPI('/api/playfair/encrypt', text, key);
+        });
+
+        document.getElementById('decrypt-btn').addEventListener('click', () => {
+            const key = document.getElementById('key').value;
+            const text = document.getElementById('text').value;
+            callPlayfairAPI('/api/playfair/decrypt', text, key);
+        });
+
+        document.getElementById('generate-matrix-btn').addEventListener('click', () => {
+            const key = document.getElementById('key').value;
+            generateMatrix(key);
+        });
+    </script>
+</body>
+</html>
